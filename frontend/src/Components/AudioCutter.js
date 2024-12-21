@@ -135,14 +135,17 @@ const AudioCutter = () => {
         <div className="mt-6 text-gray-700">
           <p>Audio Duration: {formatTime(audioDuration)}</p>
           <p>
-            Current Time: <span className="font-bold">{formatTime(currentTime)}</span> /{" "}
-            {formatTime(audioDuration)}
+            Current Time: <span className="font-bold">{formatTime(currentTime)}</span> / {formatTime(audioDuration)}
           </p>
         </div>
       )}
 
-      <div id="waveform" className="w-full h-[10rem] bg-gray-200 rounded-lg mt-4">
-        Put any song to see waveform
+      <div id="waveform" className="w-full h-[10rem] bg-gray-200 rounded-lg mt-4 relative">
+        {!waveform && (
+          <div className="flex items-center justify-center h-full text-center text-lg font-bold text-gray-500">
+            Put any song to see waveform
+          </div>
+        )}
       </div>
 
       {/* Controls Below the Waveform */}
