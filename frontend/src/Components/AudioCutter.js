@@ -15,16 +15,14 @@ const AudioCutter = () => {
   const [waveform, setWaveform] = useState(null);
   const [timeLines, setTimeLines] = useState([{ start: 0, end: 0 }]);
   const [isPlaying, setIsPlaying] = useState(false);
-  const [audioDuration, setAudioDuration] = useState(0); // Audio duration
+  const [audioDuration, setAudioDuration] = useState(0);
+  const [currentTime, setCurrentTime] = useState(0);
   const [progress, setProgress] = useState(0);
-  const audioRef = useRef(null);
 
-  // Setup file upload using react-dropzone
   const onDrop = (acceptedFiles) => {
     const file = acceptedFiles[0];
     setAudioFile(file);
 
-    // Initialize WaveSurfer
     const ws = WaveSurfer.create({
       container: "#waveform",
       waveColor: "#4e91ff",
@@ -36,13 +34,14 @@ const AudioCutter = () => {
     });
 
     ws.load(URL.createObjectURL(file));
-    ws.on("audioprocess", () => {
-      setProgress((ws.getCurrentTime() / ws.getDuration()) * 100);
-    });
 
-    // Get the audio duration
     ws.on("ready", () => {
       setAudioDuration(ws.getDuration());
+    });
+
+    ws.on("audioprocess", () => {
+      setCurrentTime(ws.getCurrentTime());
+      setProgress((ws.getCurrentTime() / ws.getDuration()) * 100);
     });
 
     setWaveform(ws);
@@ -53,7 +52,6 @@ const AudioCutter = () => {
     accept: ".mp3,.wav",
   });
 
-  // Handle Play/Pause functionality
   const togglePlayPause = () => {
     if (waveform) {
       if (waveform.isPlaying()) {
@@ -66,37 +64,33 @@ const AudioCutter = () => {
     }
   };
 
-  // Add timeline field
   const addTimeLine = () => {
     setTimeLines([...timeLines, { start: 0, end: 0 }]);
   };
 
-  // Remove timeline field
   const removeTimeLine = (index) => {
     const newTimeLines = timeLines.filter((_, idx) => idx !== index);
     setTimeLines(newTimeLines);
   };
 
-  // Update timeline values (convert input from MM:SS:MS into seconds)
   const updateTimeLine = (index, type, value, part) => {
     const newTimeLines = [...timeLines];
     const currentTime = newTimeLines[index][type];
     let newTimeValue = currentTime;
-  
+
     if (part === "min") {
-      newTimeValue = parseFloat(value) * 60 + newTimeValue % 60; // Convert minutes to seconds
+      newTimeValue = parseFloat(value) * 60 + newTimeValue % 60;
     } else if (part === "sec") {
-      newTimeValue = newTimeValue - (newTimeValue % 60) + parseFloat(value); // Update seconds part
+      newTimeValue = newTimeValue - (newTimeValue % 60) + parseFloat(value);
     } else if (part === "ms") {
-      newTimeValue = Math.floor(newTimeValue); // Remove minutes and seconds
-      newTimeValue += parseFloat(value) / 100; // Update milliseconds part
+      newTimeValue = Math.floor(newTimeValue);
+      newTimeValue += parseFloat(value) / 100;
     }
-  
+
     newTimeLines[index][type] = newTimeValue;
     setTimeLines(newTimeLines);
   };
 
-  // Method to cut audio by sending file and timelines to backend
   const cutAudio = async () => {
     if (!audioFile || timeLines.length === 0) {
       alert("Please upload an audio file and define timelines.");
@@ -104,8 +98,8 @@ const AudioCutter = () => {
     }
 
     const formData = new FormData();
-    formData.append("audio", audioFile); // Send the audio file itself
-    formData.append("timelines", JSON.stringify(timeLines)); // Send the timeline data
+    formData.append("audio", audioFile);
+    formData.append("timelines", JSON.stringify(timeLines));
 
     const response = await fetch("http://localhost:5000/cut-audio", {
       method: "POST",
@@ -128,137 +122,113 @@ const AudioCutter = () => {
   };
 
   return (
-    <div style={{ padding: "20px" }}>
+    <div className="p-6 bg-gray-100 min-h-screen">
       <div
         {...getRootProps()}
-        style={{ border: "2px dashed #000", padding: "10px", cursor: "pointer" }}
+        className="border-2 border-dashed border-gray-400 p-6 text-center cursor-pointer hover:border-blue-400 transition-all rounded-lg"
       >
         <input {...getInputProps()} />
-        <p>Drag & drop an audio file here, or click to select one</p>
+        <p className="text-gray-500">Drag & drop an audio file here, or click to select one</p>
       </div>
 
-      {/* Display start and end time of the audio */}
       {audioFile && (
-        <div style={{ marginTop: "20px" }}>
+        <div className="mt-6 text-gray-700">
           <p>Audio Duration: {formatTime(audioDuration)}</p>
+          <p>
+            Current Time: <span className="font-bold">{formatTime(currentTime)}</span> /{" "}
+            {formatTime(audioDuration)}
+          </p>
         </div>
       )}
 
-      {/* Waveform */}
-      <div
-        id="waveform"
-        style={{
-          width: "100%",
-          height: "150px",
-          marginTop: "20px",
-          backgroundColor: "#f0f0f0",
-          borderRadius: "8px",
-        }}
-      ></div>
+      <div id="waveform" className="w-full h-[10rem] bg-gray-200 rounded-lg mt-4">
+        Put any song to see waveform
+      </div>
 
-      {/* Audio Controls */}
-      <div style={{ marginTop: "20px" }}>
-        <button onClick={togglePlayPause}>
+      {/* Controls Below the Waveform */}
+      <div className="mt-6 flex flex-col items-center">
+        <button
+          onClick={togglePlayPause}
+          className="bg-blue-500 text-white py-2 px-4 rounded-lg shadow hover:bg-blue-600 transition-all"
+        >
           {isPlaying ? "Pause" : "Play"}
         </button>
 
-        {/* Progress bar */}
-        <div
-          style={{
-            width: "100%",
-            height: "5px",
-            backgroundColor: "#ddd",
-            marginTop: "10px",
-            borderRadius: "5px",
-          }}
-        >
+        <div className="w-full bg-gray-300 h-2 rounded-lg mt-4 relative">
           <div
-            style={{
-              width: `${progress}%`,
-              height: "100%",
-              backgroundColor: "#003366",
-              borderRadius: "5px",
-            }}
+            style={{ width: `${progress}%` }}
+            className="bg-blue-500 h-full rounded-lg"
           ></div>
         </div>
       </div>
 
-      {/* Timeline Fields */}
-      <div style={{ marginTop: "20px" }}>
+      <div className="mt-6">
         {timeLines.map((timeLine, index) => (
-          <div key={index} style={{ marginBottom: "10px" }}>
-            <div style={{ display: "flex", alignItems: "center" }}>
-              {/* Start Time Inputs */}
-              <input
-                type="text"
-                value={Math.floor(timeLine.start / 60).toString().padStart(2, "0")}
-                onChange={(e) => updateTimeLine(index, "start", e.target.value, "min")}
-                placeholder="Min"
-                style={{ marginRight: "5px", width: "60px" }}
-              />
-              <input
-                type="text"
-                value={Math.floor(timeLine.start % 60).toString().padStart(2, "0")}
-                onChange={(e) => updateTimeLine(index, "start", e.target.value, "sec")}
-                placeholder="Sec"
-                style={{ marginRight: "5px", width: "60px" }}
-              />
-              <input
-                type="text"
-                value={Math.floor((timeLine.start % 1) * 100).toString().padStart(2, "0")}
-                onChange={(e) => updateTimeLine(index, "start", e.target.value, "ms")}
-                placeholder="MS"
-                style={{ marginRight: "10px", width: "60px" }}
-              />
-              <span>to</span>
-              {/* End Time Inputs */}
-              <input
-                type="text"
-                value={Math.floor(timeLine.end / 60).toString().padStart(2, "0")}
-                onChange={(e) => updateTimeLine(index, "end", e.target.value, "min")}
-                placeholder="Min"
-                style={{ marginRight: "5px", width: "60px" }}
-              />
-              <input
-                type="text"
-                value={Math.floor(timeLine.end % 60).toString().padStart(2, "0")}
-                onChange={(e) => updateTimeLine(index, "end", e.target.value, "sec")}
-                placeholder="Sec"
-                style={{ marginRight: "5px", width: "60px" }}
-              />
-              <input
-                type="text"
-                value={Math.floor((timeLine.end % 1) * 100).toString().padStart(2, "0")}
-                onChange={(e) => updateTimeLine(index, "end", e.target.value, "ms")}
-                placeholder="MS"
-                style={{ marginRight: "10px", width: "60px" }}
-              />
-              {index === timeLines.length - 1 && (
-                <button onClick={addTimeLine}>+</button>
-              )}
-              {timeLines.length > 1 && (
-                <button
-                  onClick={() => removeTimeLine(index)}
-                  style={{ marginLeft: "10px", backgroundColor: "red", color: "white" }}
-                >
-                  Remove
-                </button>
-              )}
-            </div>
+          <div key={index} className="flex items-center gap-2 mb-4">
+            <input
+              type="text"
+              value={Math.floor(timeLine.start / 60).toString().padStart(2, "0")}
+              onChange={(e) => updateTimeLine(index, "start", e.target.value, "min")}
+              placeholder="Min"
+              className="border border-gray-300 rounded p-1 w-16"
+            />
+            <input
+              type="text"
+              value={Math.floor(timeLine.start % 60).toString().padStart(2, "0")}
+              onChange={(e) => updateTimeLine(index, "start", e.target.value, "sec")}
+              placeholder="Sec"
+              className="border border-gray-300 rounded p-1 w-16"
+            />
+            <input
+              type="text"
+              value={Math.floor((timeLine.start % 1) * 100).toString().padStart(2, "0")}
+              onChange={(e) => updateTimeLine(index, "start", e.target.value, "ms")}
+              placeholder="MS"
+              className="border border-gray-300 rounded p-1 w-16"
+            />
+            <span>to</span>
+            <input
+              type="text"
+              value={Math.floor(timeLine.end / 60).toString().padStart(2, "0")}
+              onChange={(e) => updateTimeLine(index, "end", e.target.value, "min")}
+              placeholder="Min"
+              className="border border-gray-300 rounded p-1 w-16"
+            />
+            <input
+              type="text"
+              value={Math.floor(timeLine.end % 60).toString().padStart(2, "0")}
+              onChange={(e) => updateTimeLine(index, "end", e.target.value, "sec")}
+              placeholder="Sec"
+              className="border border-gray-300 rounded p-1 w-16"
+            />
+            <input
+              type="text"
+              value={Math.floor((timeLine.end % 1) * 100).toString().padStart(2, "0")}
+              onChange={(e) => updateTimeLine(index, "end", e.target.value, "ms")}
+              placeholder="MS"
+              className="border border-gray-300 rounded p-1 w-16"
+            />
+            <button
+              onClick={addTimeLine}
+              className="bg-green-500 text-white px-2 rounded"
+            >
+              +
+            </button>
+            {timeLines.length > 1 && (
+              <button
+                onClick={() => removeTimeLine(index)}
+                className="bg-red-500 text-white px-2 rounded"
+              >
+                Remove
+              </button>
+            )}
           </div>
         ))}
       </div>
 
-      {/* Cut Audio Button */}
       <button
         onClick={cutAudio}
-        style={{
-          marginTop: "20px",
-          padding: "10px 20px",
-          backgroundColor: "#4e91ff",
-          color: "white",
-          borderRadius: "5px",
-        }}
+        className="bg-blue-500 text-white py-2 px-6 rounded-lg mt-6 hover:bg-blue-600 transition-all"
       >
         Cut Audio
       </button>
