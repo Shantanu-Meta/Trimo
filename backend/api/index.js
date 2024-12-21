@@ -22,8 +22,8 @@ const upload = multer({
 });
 const cors = require("cors");
 const corsOptions = {
-  origin: 'http://localhost:3000',  // Allow only requests from your frontend
-  methods: ['GET', 'POST'],
+  origin: '*',  // Allow only requests from your frontend
+  methods: ['GET', 'POST', 'PUT', 'DELETE'],
   allowedHeaders: ['Content-Type', 'Authorization'],
 };
 

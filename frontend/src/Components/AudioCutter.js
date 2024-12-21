@@ -98,13 +98,15 @@ const AudioCutter = () => {
     }
 
     const formData = new FormData();
-    formData.append("audio", audioFile);
-    formData.append("timelines", JSON.stringify(timeLines));
+formData.append("audio", audioFile);
+formData.append("timelines", JSON.stringify(timeLines));
 
-    const response = await fetch("https://trimo-hazel.vercel.app/cut-audio", {
-      method: "POST",
-      body: formData,
-    });
+const response = await fetch("https://trimo-hazel.vercel.app/cut-audio", {
+  method: "POST",
+  body: formData, // Send the FormData as the body
+  mode: 'cors', // Set CORS mode (not 'no-cors' since you need to access the response)
+});
+
 
     if (response.ok) {
       const blob = await response.blob();
