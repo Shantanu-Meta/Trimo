@@ -21,13 +21,8 @@ const upload = multer({
   limits: { fileSize: 50 * 1024 * 1024 }, // Set max file size (e.g., 50MB)
 });
 const cors = require("cors");
-const corsOptions = {
-  origin: '*',  // Allow only requests from your frontend
-  methods: ['GET', 'POST', 'PUT', 'DELETE'],
-  allowedHeaders: ['Content-Type', 'Authorization'],
-};
 
-app.use(cors(corsOptions));
+app.use(cors());
 
 
 // POST route for cutting audio
@@ -110,7 +105,6 @@ app.post("/cut-audio", upload.single("audio"), (req, res) => {
                 fs.unlinkSync(concatFilePath);
                 fs.unlinkSync(outputPath);
               });
-              res.json({ message: "Audio processed successfully!" });
             })
             .on("error", (err) => {
               res.status(500).send("Error merging audio: " + err.message);
